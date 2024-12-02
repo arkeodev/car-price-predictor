@@ -181,3 +181,8 @@ volumes/
 
 # Vector_Index Folder
 vector_index.faiss/
+
+# Data
+/data
+.dvc/credentials.json
+.dvc/config
