@@ -186,3 +186,6 @@ vector_index.faiss/
 /data
 .dvc/credentials.json
 .dvc/config
+
+# Mac OS files
+.DS_Store
