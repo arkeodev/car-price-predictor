@@ -20,6 +20,15 @@ import logging
 from contextlib import contextmanager
 import threading
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Replace hardcoded configs with environment variables
+SQLALCHEMY_DATABASE_URL = os.getenv('DATABASE_URL', "postgresql://postgres:postgres123@localhost:5432/cars_db")
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', "localhost:9092")
+KAFKA_TOPIC_LISTINGS = os.getenv('KAFKA_TOPIC_LISTINGS', "cars-db.public.listings")
+KAFKA_TOPIC_PREDICTIONS = os.getenv('KAFKA_TOPIC_PREDICTIONS', "cars.public.predictions")
 
 # Enhanced logging configuration
 logging.basicConfig(
@@ -42,15 +51,9 @@ app.add_middleware(
 )
 
 # Database configuration
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres123@localhost:5432/cars_db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-
-# Kafka configuration
-KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
-KAFKA_TOPIC_LISTINGS = "cars-db.public.listings"
-KAFKA_TOPIC_PREDICTIONS = "cars.public.predictions"
 
 # Define SQLAlchemy model for the Car table
 class Car(Base):

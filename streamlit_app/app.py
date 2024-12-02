@@ -4,8 +4,21 @@ import requests
 import plotly.express as px
 from datetime import datetime
 import time
+import os
+from typing import Optional, List, Dict, Any
+from dotenv import load_dotenv
+import logging
 
-API_URL = "http://localhost:8000"
+load_dotenv()
+
+API_URL = os.getenv('API_URL', "http://localhost:8000")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Car Price Predictor",
@@ -41,33 +54,63 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=300)
-def fetch_cars():
-    """Fetch cars data from API with caching"""
+def fetch_cars() -> pd.DataFrame:
+    """
+    Fetch cars data from API with caching
+    
+    Returns:
+        pd.DataFrame: DataFrame containing car listings
+    """
     try:
-        st.write("Fetching data from API...")  
-        response = requests.get(f"{API_URL}/cars")
-        st.write(f"Response status: {response.status_code}") 
-        if response.status_code == 200:
-            data = pd.DataFrame(response.json())
-            st.write(f"Data fetched successfully. Shape: {data.shape}") 
-            return data
-        st.write("Failed to fetch data")  
-        return pd.DataFrame()
+        logger.info("Fetching data from API...")
+        response = requests.get(f"{API_URL}/cars", timeout=10)
+        response.raise_for_status()
+        
+        data = pd.DataFrame(response.json())
+        logger.info(f"Successfully fetched {len(data)} records")
+        return data
+        
+    except requests.exceptions.Timeout:
+        logger.error("API request timed out")
+        st.error("Server is taking too long to respond. Please try again.")
+    except requests.exceptions.ConnectionError:
+        logger.error("Failed to connect to API")
+        st.error("Could not connect to server. Please check if it's running.")
     except Exception as e:
-        st.write(f"Error fetching data: {str(e)}")  
-        return pd.DataFrame()
+        logger.error(f"Unexpected error fetching data: {str(e)}")
+        st.error("An unexpected error occurred while fetching data.")
+    
+    return pd.DataFrame()
 
 @st.cache_data(ttl=600)
-def get_unique_values(df, column):
-    """Get unique values from DataFrame column"""
+def get_unique_values(df: pd.DataFrame, column: str) -> List[Any]:
+    """
+    Get unique values from DataFrame column
+    
+    Args:
+        df: Input DataFrame
+        column: Column name to get unique values from
+        
+    Returns:
+        List of unique values from the column
+    """
     try:
         return sorted(df[column].unique().tolist()) if not df.empty else []
     except Exception as e:
-        st.write(f"Error getting unique values: {str(e)}")  
+        logger.error(f"Error getting unique values for {column}: {str(e)}")
         return []
 
-def create_plot(df, plot_type):
-    """Create different types of plots based on the data"""
+def create_plot(df: pd.DataFrame, plot_type: str) -> Optional[px.Figure]:
+    """
+    Create different types of plots based on the data
+    
+    Args:
+        df: Input DataFrame
+        plot_type: Type of plot to create
+        
+    Returns:
+        Plotly figure object or None if creation fails
+    """
     try:
         if df.empty:
             return None
@@ -138,7 +181,7 @@ def create_plot(df, plot_type):
                 
         return fig
     except Exception as e:
-        st.write(f"Error creating plot: {str(e)}")  
+        logger.error(f"Error creating {plot_type} plot: {str(e)}")
         return None
 
 st.title("🚗 Car Price Predictor")
